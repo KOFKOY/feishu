@@ -179,7 +179,16 @@ public class ZielSub extends EventServlet {
         }else if(sendContent.contains(("ls"))){
             String[] options = {"获取企业信息","获取个人信息","更新群名称为->XXX(群名称)","获取所有部门信息"
                     ,"获取部门成员根据部门OpenId->xxx(openId)","创建用户","修改用户姓名->xxx(姓名)","删除用户"};
-            sendContent = mapper.writeValueAsString(options);
+            Map<Integer, String> item = new HashMap<>();
+            item.put(1, "获取企业信息");
+            item.put(2, "获取个人信息");
+            item.put(3, "更新群名称为->XXX(群名称)");
+            item.put(4, "获取所有部门信息");
+            item.put(5, "获取部门成员根据部门OpenId->xxx(openId)");
+            item.put(6, "创建用户");
+            item.put(7, "修改用户姓名->xxx(姓名)");
+            item.put(8, "删除用户");
+            sendContent = mapper.writeValueAsString(item);
         }
         //获取发送人的user_id  用于@
         String user_id = subscribeInfo.getEvent().getSender().getSender_id().getOpen_id();
