@@ -16,6 +16,7 @@ import com.larksuite.oapi.service.authen.v1.model.AuthenAccessTokenReqBody;
 import com.larksuite.oapi.service.authen.v1.model.AuthenRefreshAccessTokenReqBody;
 import com.larksuite.oapi.service.authen.v1.model.UserAccessTokenInfo;
 import com.larksuite.oapi.service.authen.v1.model.UserInfo;
+import com.wsj.feishu.constant.Constant;
 import com.wsj.feishu.entity.Encrypt;
 import com.wsj.feishu.entity.SubscribeInfo;
 import lombok.extern.slf4j.Slf4j;
@@ -49,9 +50,9 @@ public class LoginController{
      */
     @GetMapping
     public String scanCodeLogin(String code,String state) throws Exception {
+        log.info("GET 扫码登录");
         log.info("CODE---->" + code);
         log.info("STATE---->" + state);
-        log.info("GET 扫码登录");
         //TODO 获取code，获取tenant_access_token 获取用户信息
         //https://open.feishu.cn/open-apis/authen/v1/access_token
         AuthenService service = new AuthenService(config);
@@ -63,6 +64,8 @@ public class LoginController{
         System.out.println(Jsons.DEFAULT_GSON.toJson(response));
         System.out.println(Jsons.DEFAULT_GSON.toJson(response.getData()));
         System.out.println(response.getRequestID());
+        UserAccessTokenInfo data = response.getData();
+        Constant.userMap.put(data.getOpenId(), data);
         return null;
     }
 
@@ -100,5 +103,6 @@ public class LoginController{
         Response<UserAccessTokenInfo> response = reqCall.execute();
         System.out.println(Jsons.DEFAULT_GSON.toJson(response));
         System.out.println(response.getRequestID());
+
     }
 }

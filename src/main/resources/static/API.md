@@ -1,3 +1,6 @@
+二维码登录地址：
+https://open.feishu.cn/open-apis/authen/v1/index?redirect_uri=http%3A%2F%2Fwsj.free.aeert.com%2Flogin&app_id=cli_a05687963b38500b&state=wsjtest
+
 #### 1.获取 tenant_access_token/app_access_token
 > 调用接口获取企业资源时，需要使用 tenant_access_token 作为授权凭证 有效期为 2 小时自建应用的 app_access_token 等同于 tenant_access_token
 

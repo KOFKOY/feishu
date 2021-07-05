@@ -21,9 +21,14 @@ public class FeishuConfig {
     public String encryptKey;
 
     @Bean
-    public Config initAppSettings(){
+    public Config initConfig(){
         AppSettings appSettings = Config.createInternalAppSettings(appId,appSecret,verificationToken,encryptKey);
         Config config = new Config(Domain.FeiShu, appSettings, new DefaultStore());//RedisStore
         return config;
+    }
+    @Bean
+    public AppSettings initAppSettings(){
+        AppSettings appSettings = Config.createInternalAppSettings(appId,appSecret,verificationToken,encryptKey);
+        return appSettings;
     }
 }
