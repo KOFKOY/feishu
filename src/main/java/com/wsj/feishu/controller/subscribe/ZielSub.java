@@ -23,10 +23,7 @@ import com.larksuite.oapi.service.contact.v3.ContactService;
 import com.larksuite.oapi.service.contact.v3.model.UserCreatedEvent;
 import com.larksuite.oapi.service.contact.v3.model.UserUpdatedEvent;
 import com.wsj.feishu.constant.Constant;
-import com.wsj.feishu.entity.CreateUser;
-import com.wsj.feishu.entity.DeptInfo;
-import com.wsj.feishu.entity.Encrypt;
-import com.wsj.feishu.entity.SubscribeInfo;
+import com.wsj.feishu.entity.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,9 +33,7 @@ import org.springframework.web.client.RestTemplate;
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 @RequestMapping("/ziel")
@@ -187,6 +182,12 @@ public class ZielSub extends EventServlet {
             sendContent = modifyDeptInfo(sendContent);
         }else if(sendContent.contains(("删除部门->"))){
             sendContent = deleteDept(sendContent);
+        }else if(sendContent.contains(("发送图片"))){
+            sendImageV1(chat_id);
+            return;
+        }else if(sendContent.contains(("发送富文本"))){
+            sendPostText(chat_id);
+            return;
         }else if(sendContent.contains(("ls"))){
             String items = "\n" +
                     "功能列表如下:↓↓↓\n"+
@@ -203,7 +204,9 @@ public class ZielSub extends EventServlet {
                     "11.获取父部门信息\n"+
                     "12.搜索部门->xxx(部门名称)\n"+
                     "13.修改部门信息->xxx(部门名称)\n"+
-                    "14.删除部门->xxx(openId)";
+                    "14.删除部门->xxx(openId)\n"+
+                    "15.发送图片\n"+
+                    "16.发送富文本";
             sendContent = items;
         }
         //获取发送人的user_id  用于@
@@ -216,6 +219,119 @@ public class ZielSub extends EventServlet {
         }
 //        this.sendTextMessage(tenant_key, contentBody, chat_id);
         this.sendTextMessageV1(contentBody, chat_id);
+    }
+
+    private void sendPostText(String chatId) throws Exception {
+        Map<String, Object> message = new HashMap<>();
+        //如果是user_id,机器人回单聊发送信息
+        //chat_id，在发送信息的窗口发送信息
+        message.put("receive_id", chatId);
+        message.put("msg_type", "post");
+
+        PostText postText = new PostText();
+        PostText.Zh_cnEntity zhCh = new PostText.Zh_cnEntity();
+        zhCh.setTitle("我是第一个标题");
+        List<List<PostText.Zh_cnEntity.ContentEntity>> listTotal = new ArrayList<>();
+        List<PostText.Zh_cnEntity.ContentEntity> listItems = new ArrayList<>();
+        PostText.Zh_cnEntity.ContentEntity contentEntity = new PostText.Zh_cnEntity.ContentEntity();
+        contentEntity.setTag("text");
+        contentEntity.setText("第一行");
+        PostText.Zh_cnEntity.ContentEntity contentEntity2 = new PostText.Zh_cnEntity.ContentEntity();
+        contentEntity2.setTag("a");
+        contentEntity2.setHref("http://www.feishu.cn");
+        contentEntity2.setText("飞书超链接");
+
+        PostText.Zh_cnEntity.ContentEntity contentEntity3 = new PostText.Zh_cnEntity.ContentEntity();
+        contentEntity3.setTag("at");
+        contentEntity3.setUser_id("5dbf1798");
+        contentEntity3.setUser_name("王帅杰");
+        PostText.Zh_cnEntity.ContentEntity contentEntity4 = new PostText.Zh_cnEntity.ContentEntity();
+        contentEntity4.setTag("img");
+        contentEntity4.setImage_key("img_v2_fc2dacea-0f92-443f-8c03-b6660b260dcg");
+        contentEntity4.setWidth(100);
+        contentEntity4.setHeight(100);
+        listItems.add(contentEntity);
+        //listItems.add(contentEntity2);
+        //listItems.add(contentEntity3);
+        //listItems.add(contentEntity4);
+        listTotal.add(listItems);
+//        List<PostText.Zh_cnEntity.ContentEntity> listItems2 = new ArrayList<>();
+//        PostText.Zh_cnEntity.ContentEntity contentEntity5 = new PostText.Zh_cnEntity.ContentEntity();
+//        contentEntity5.setTag("text");
+//        contentEntity5.setText("第二行");
+//        listItems2.add(contentEntity5);
+//        listTotal.add(listItems2);
+        zhCh.setContent(listTotal);
+        postText.setZh_cn(zhCh);
+        //postText.setEn_us(new PostText.Zh_cnEntity());
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("post", postText);
+        log.info("发送的富文本JSON->"+mapper.writeValueAsString(map));
+
+        message.put("content", mapper.writeValueAsString(map));
+        log.info("发送的Message JSON->"+mapper.writeValueAsString(message));
+        //v4旧版本  v1新版本
+        Request<Map<String, Object>, Map<String, Object>> request = Request.newRequest("im/v1/messages?receive_id_type=chat_id",
+                "POST", AccessTokenType.Tenant, message, new HashMap<>());
+        Response<Map<String, Object>> response = Api.send(config, request);
+        System.out.println(response.getRequestID());
+        System.out.println(response.getHTTPStatusCode());
+        System.out.println(Jsons.DEFAULT_GSON.toJson(response));
+    }
+
+    /**
+     * sendImage
+     * 老版发送图片接口
+     * @param chatId
+     * @throws {@link Exception}
+     * @author 王帅杰
+     * @history
+     */
+    private void sendImage(String chatId) throws Exception {
+        Map<String, Object> message = new HashMap<>();
+        //如果是user_id,机器人回单聊发送信息
+        //chat_id，在发送信息的窗口发送信息
+        message.put("chat_id", chatId);
+        message.put("msg_type", "image");
+        Map<String, String> content = new HashMap<>();
+        content.put("image_key", "img_v2_fc2dacea-0f92-443f-8c03-b6660b260dcg");
+        message.put("content", content);
+        //v4旧版本  v1新版本
+        Request<Map<String, Object>, Map<String, Object>> request = Request.newRequest("message/v4/send",
+                "POST", AccessTokenType.Tenant, message, new HashMap<>());
+        Response<Map<String, Object>> response = Api.send(config, request);
+        System.out.println(response.getRequestID());
+        System.out.println(response.getHTTPStatusCode());
+        System.out.println(Jsons.DEFAULT_GSON.toJson(response));
+    }
+
+    /**
+     * sendImageV1
+     * 新版发送图片接口
+     * @param chatId
+     * @throws {@link Exception}
+     * @author 王帅杰
+     * @history
+     */
+    private void sendImageV1(String chatId) throws Exception {
+        Map<String, Object> message = new HashMap<>();
+        //如果是user_id,机器人回单聊发送信息
+        //chat_id，在发送信息的窗口发送信息
+        message.put("receive_id", chatId);
+        message.put("msg_type", "image");
+        Map<String, Object> content = new HashMap<>();
+        content.put("image_key", "img_v2_fc2dacea-0f92-443f-8c03-b6660b260dcg");
+        content.put("height", 100);
+        content.put("width", 100);
+        message.put("content", mapper.writeValueAsString(content));
+        //v4旧版本  v1新版本
+        Request<Map<String, Object>, Map<String, Object>> request = Request.newRequest("im/v1/messages?receive_id_type=chat_id",
+                "POST", AccessTokenType.Tenant, message, new HashMap<>());
+        Response<Map<String, Object>> response = Api.send(config, request);
+        System.out.println(response.getRequestID());
+        System.out.println(response.getHTTPStatusCode());
+        System.out.println(Jsons.DEFAULT_GSON.toJson(response));
     }
 
     private String createDept(String sendContent) throws Exception{
