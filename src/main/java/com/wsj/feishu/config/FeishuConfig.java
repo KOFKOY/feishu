@@ -31,4 +31,5 @@ public class FeishuConfig {
         AppSettings appSettings = Config.createInternalAppSettings(appId,appSecret,verificationToken,encryptKey);
         return appSettings;
     }
+
 }

@@ -53,7 +53,6 @@ public class LoginController{
         log.info("GET 扫码登录");
         log.info("CODE---->" + code);
         log.info("STATE---->" + state);
-        //TODO 获取code，获取tenant_access_token 获取用户信息
         //https://open.feishu.cn/open-apis/authen/v1/access_token
         AuthenService service = new AuthenService(config);
         AuthenAccessTokenReqBody body = new AuthenAccessTokenReqBody();
@@ -66,9 +65,13 @@ public class LoginController{
         System.out.println(response.getRequestID());
         UserAccessTokenInfo data = response.getData();
         Constant.userMap.put(data.getOpenId(), data);
-        return null;
+        return "登录成功!";
     }
 
+    @GetMapping("/test")
+    public String test(){
+        return "ssss";
+    }
 
     /**
      * getUserInfoByAaccessToken

@@ -7,6 +7,8 @@ import com.larksuite.oapi.core.Context;
 import com.larksuite.oapi.core.Decrypt;
 import com.larksuite.oapi.core.api.AccessTokenType;
 import com.larksuite.oapi.core.api.Api;
+import com.larksuite.oapi.core.api.request.FormData;
+import com.larksuite.oapi.core.api.request.FormDataFile;
 import com.larksuite.oapi.core.api.request.Request;
 import com.larksuite.oapi.core.api.response.Response;
 import com.larksuite.oapi.core.event.DefaultHandler;
@@ -22,19 +24,18 @@ import com.larksuite.oapi.service.contact.v3.model.UserCreatedEvent;
 import com.larksuite.oapi.service.contact.v3.model.UserUpdatedEvent;
 import com.wsj.feishu.constant.Constant;
 import com.wsj.feishu.entity.CreateUser;
+import com.wsj.feishu.entity.DeptInfo;
 import com.wsj.feishu.entity.Encrypt;
 import com.wsj.feishu.entity.SubscribeInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,8 +48,6 @@ public class ZielSub extends EventServlet {
     private ObjectMapper mapper;
     @Autowired
     private Config config;
-    @Autowired
-    private RestTemplate restTemplate;
 
     public ZielSub(Config config) {
         super(config);
@@ -176,19 +175,36 @@ public class ZielSub extends EventServlet {
             sendContent = modifyUser(sendContent,subscribeInfo.getEvent().getSender().getSender_id().getOpen_id());
         }else if(sendContent.contains(("删除用户"))){
             sendContent = deleteUser(subscribeInfo.getEvent().getSender().getSender_id().getOpen_id());
+        }else if(sendContent.contains(("创建部门"))){
+            sendContent = createDept(sendContent);
+        }else if(sendContent.contains(("根据部门ID获取单个部门信息->"))){
+            sendContent = getDeptInfoByOpenId(sendContent);
+        }else if(sendContent.contains(("获取父部门信息"))){
+            sendContent = getDeptParentInfo(sendContent);
+        }else if(sendContent.contains(("搜索部门->"))){
+            sendContent = searchDeptByName(sendContent,subscribeInfo.getEvent().getSender().getSender_id().getOpen_id());
+        }else if(sendContent.contains(("修改部门信息->"))){
+            sendContent = modifyDeptInfo(sendContent);
+        }else if(sendContent.contains(("删除部门->"))){
+            sendContent = deleteDept(sendContent);
         }else if(sendContent.contains(("ls"))){
-            String[] options = {"获取企业信息","获取个人信息","更新群名称为->XXX(群名称)","获取所有部门信息"
-                    ,"获取部门成员根据部门OpenId->xxx(openId)","创建用户","修改用户姓名->xxx(姓名)","删除用户"};
-            Map<Integer, String> item = new HashMap<>();
-            item.put(1, "获取企业信息");
-            item.put(2, "获取个人信息");
-            item.put(3, "更新群名称为->XXX(群名称)");
-            item.put(4, "获取所有部门信息");
-            item.put(5, "获取部门成员根据部门OpenId->xxx(openId)");
-            item.put(6, "创建用户");
-            item.put(7, "修改用户姓名->xxx(姓名)");
-            item.put(8, "删除用户");
-            sendContent = mapper.writeValueAsString(item);
+            String items = "\n" +
+                    "功能列表如下:↓↓↓\n"+
+                    "1.获取企业信息\n"+
+                    "2.获取个人信息\n"+
+                    "3.更新群名称为->XXX(群名称)\n"+
+                    "4.获取所有部门信息\n"+
+                    "5.获取部门成员根据部门OpenId->xxx(openId)\n"+
+                    "6.创建用户\n"+
+                    "7.修改用户姓名->xxx(姓名)\n"+
+                    "8.删除用户\n"+
+                    "9.创建部门->xxx(名称)\n" +
+                    "10.根据部门ID获取单个部门信息->xxx(openId)\n" +
+                    "11.获取父部门信息\n"+
+                    "12.搜索部门->xxx(部门名称)\n"+
+                    "13.修改部门信息->xxx(部门名称)\n"+
+                    "14.删除部门->xxx(openId)";
+            sendContent = items;
         }
         //获取发送人的user_id  用于@
         String user_id = subscribeInfo.getEvent().getSender().getSender_id().getOpen_id();
@@ -200,6 +216,83 @@ public class ZielSub extends EventServlet {
         }
 //        this.sendTextMessage(tenant_key, contentBody, chat_id);
         this.sendTextMessageV1(contentBody, chat_id);
+    }
+
+    private String createDept(String sendContent) throws Exception{
+        String[] split = sendContent.split("->");
+        //测试写死了IT 部门的openId
+        DeptInfo deptInfo = new DeptInfo();
+        deptInfo.setName(split[1]);
+        deptInfo.setLeader_user_id("ou_f4c091cd5dfb69c279d5d9280dc7a175");
+        deptInfo.setParent_department_id("0");
+        Request<DeptInfo, HashMap<Object, Object>> request = Request.newRequest("contact/v3/departments?department_id_type=open_department_id",
+                "POST", AccessTokenType.Tenant, deptInfo, new HashMap<>());
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        if (send.getCode() != 0) {
+            return send.getMsg();
+        }
+        return "创建成功";
+    }
+
+    private String deleteDept(String sendContent) throws Exception {
+        String[] split = sendContent.split("->");
+        //测试写死了IT 部门的openId
+        Request<DeptInfo, HashMap<Object, Object>> request = Request.newRequest("contact/v3/departments/"+split[1]+"?department_id_type=open_department_id",
+                "DELETE", AccessTokenType.Tenant, null, new HashMap<>());
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        if (send.getCode() != 0) {
+            return send.getMsg();
+        }
+        return "删除成功";
+    }
+
+    private String modifyDeptInfo(String sendContent) throws Exception {
+        String[] split = sendContent.split("->");
+        DeptInfo deptInfo = new DeptInfo();
+        deptInfo.setName(split[1]);
+        //测试写死了IT 部门的openId
+        Request<DeptInfo, HashMap<Object, Object>> request = Request.newRequest("contact/v3/departments/od-189d115e589a7ba50825daf8811a0f47?department_id_type=open_department_id",
+                "PATCH", AccessTokenType.Tenant, deptInfo, new HashMap<>());
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        if (send.getCode() != 0) {
+            return send.getMsg();
+        }
+        return "修改成功";
+    }
+
+    private String searchDeptByName(String sendContent,String openId) throws Exception{
+        String[] split = sendContent.split("->");
+        Map<String, Object> message = new HashMap<>();
+        message.put("query", split[1]);
+        Request<Map<String, Object>, HashMap<Object, Object>> request = Request.newRequest("contact/v3/departments/search",
+                "POST", AccessTokenType.User, message, new HashMap<>(),Request.setUserAccessToken(Constant.userMap.get(openId).getAccessToken()));
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        if (send.getCode() != 0) {
+            return send.getMsg();
+        }
+        return mapper.writeValueAsString(send.getData());
+    }
+
+    private String getDeptParentInfo(String sendContent) throws Exception {
+        Request<CreateUser, HashMap<Object, Object>> request = Request.newRequest("contact/v3/departments/parent?department_id_type=open_department_id&department_id=od-1cf995dee49c5b729948244ca81bff31",
+                "GET", AccessTokenType.Tenant, null, new HashMap<>());
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        if (send.getCode() != 0) {
+            return send.getMsg();
+        }
+        return mapper.writeValueAsString(send.getData());
+    }
+
+    private String getDeptInfoByOpenId(String sendContent) throws Exception {
+        String[] split = sendContent.split("->");
+        Request<CreateUser, HashMap<Object, Object>> request = Request.newRequest("contact/v3/departments/"+split[1],
+                "GET", AccessTokenType.Tenant, null, new HashMap<>());
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        if (send.getCode() != 0) {
+            return send.getMsg();
+        }
+        return mapper.writeValueAsString(send.getData());
+
     }
 
     private String deleteUser(String open_id) throws Exception {
@@ -386,4 +479,22 @@ public class ZielSub extends EventServlet {
         System.out.println(response.getHTTPStatusCode());
         System.out.println(Jsons.DEFAULT_GSON.toJson(response));
     }
+
+
+
+    @GetMapping("/uploadImage")
+    public String uploadImage() throws Exception {
+        FormData formData = new FormData();
+        formData.addField("image_type", "message");
+        InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("/static/test2.png");
+        formData.addFile("image", new FormDataFile().setContentStream(inputStream));
+        Request<FormData, Map<String, Object>> request = Request.newRequest("image/v4/put",
+                "POST", AccessTokenType.Tenant, formData, new HashMap<>());
+        Response<Map<String, Object>> response = Api.send(config, request);
+        System.out.println(response.getRequestID());
+        System.out.println(response.getHTTPStatusCode());
+        System.out.println(Jsons.DEFAULT_GSON.toJson(response));
+        return "上传成功";
+    }
+
 }
