@@ -14,8 +14,4 @@ public class FeishuApplication {
         SpringApplication.run(FeishuApplication.class, args);
     }
 
-    @Bean
-    public RestTemplate initRestTemplate(){
-        return new RestTemplate();
-    }
 }
