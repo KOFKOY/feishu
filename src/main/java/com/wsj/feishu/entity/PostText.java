@@ -1,5 +1,7 @@
 package com.wsj.feishu.entity;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.List;
 
 public class PostText {
@@ -7,7 +9,9 @@ public class PostText {
     /**
      * zh_cn : {"title":"我是一个标题","content":[[{"tag":"text","text":"第一行 :"},{"tag":"a","href":"http://www.feishu.cn","text":"超链接"},{"user_id":"ou_1avnmsbv3k45jnk34j5","user_name":"tom","tag":"at"}],[{"image_key":"img_47354fbc-a159-40ed-86ab-2ad0f1acb42g","width":300,"tag":"img","height":300}],[{"tag":"text","text":"第二行:"},{"tag":"text","text":"文本测试"}],[{"image_key":"img_47354fbc-a159-40ed-86ab-2ad0f1acb42g","width":300,"tag":"img","height":300}]]}
      */
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Zh_cnEntity zh_cn;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private Zh_cnEntity en_us;
 
     public Zh_cnEntity getEn_us() {
@@ -31,7 +35,9 @@ public class PostText {
          * title : 我是一个标题
          * content : [[{"tag":"text","text":"第一行 :"},{"tag":"a","href":"http://www.feishu.cn","text":"超链接"},{"user_id":"ou_1avnmsbv3k45jnk34j5","user_name":"tom","tag":"at"}],[{"image_key":"img_47354fbc-a159-40ed-86ab-2ad0f1acb42g","width":300,"tag":"img","height":300}],[{"tag":"text","text":"第二行:"},{"tag":"text","text":"文本测试"}],[{"image_key":"img_47354fbc-a159-40ed-86ab-2ad0f1acb42g","width":300,"tag":"img","height":300}]]
          */
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         private String title;
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         private List<List<ContentEntity>> content;
 
         public void setTitle(String title) {
@@ -55,13 +61,21 @@ public class PostText {
              * tag : text
              * text : 第一行 :
              */
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private String tag;
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private String text;
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private String href;
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private String user_id;
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private String user_name;
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private String image_key;
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private int width;
+            @JsonInclude(JsonInclude.Include.NON_NULL)
             private int height;
 
             public String getHref() {

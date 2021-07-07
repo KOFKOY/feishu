@@ -1,5 +1,8 @@
 package com.wsj.feishu.controller.subscribe;
 
+import cn.hutool.core.codec.Base64Encoder;
+import cn.hutool.core.io.FileUtil;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.larksuite.oapi.core.Config;
@@ -32,7 +35,10 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.*;
 
 @Slf4j
@@ -50,6 +56,7 @@ public class ZielSub extends EventServlet {
 
     @PostConstruct
     public void init(){
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         log.info("================设置首次启用应用事件处理者====================");
         // 设置首次启用应用事件处理者
         Event.setTypeHandler(this.getConfig(), "app_open", new DefaultHandler() {
@@ -150,6 +157,8 @@ public class ZielSub extends EventServlet {
         SubscribeInfo.EventEntity.MessageEntity message = subscribeInfo.getEvent().getMessage();
         String tenant_key = subscribeInfo.getHeader().getTenant_key();
         String chat_id = subscribeInfo.getEvent().getMessage().getChat_id();
+        String open_id = subscribeInfo.getEvent().getSender().getSender_id().getOpen_id();
+        String messageId = subscribeInfo.getEvent().getMessage().getMessage_id();
         String content = message.getContent();
         Map<String, String> map = mapper.readValue(content, Map.class);
         String sendContent = map.getOrDefault("text", "未识别的text");
@@ -157,36 +166,45 @@ public class ZielSub extends EventServlet {
         if (sendContent.contains("获取企业信息")) {
             sendContent = getCompanyInfo();
         }else if(sendContent.contains("获取个人信息")){
-            sendContent = getUserInfo(subscribeInfo.getEvent().getSender().getSender_id().getOpen_id());
-        }else if(sendContent.contains(("更新群名称为->"))){
+            sendContent = getUserInfo(open_id);
+        }else if(sendContent.contains("更新群名称为->")){
             sendContent = updateChatInfo(chat_id,sendContent);
-        }else if(sendContent.contains(("获取所有部门信息"))){
+        }else if(sendContent.contains("获取所有部门信息")){
             sendContent = getDeptList();
-        }else if(sendContent.contains(("获取部门成员根据部门OpenId->"))){
+        }else if(sendContent.contains("获取部门成员根据部门OpenId->")){
             sendContent = getUserByOpenId(sendContent);
-        }else if(sendContent.contains(("创建用户"))){
+        }else if(sendContent.contains("创建用户")){
             sendContent = createUser();
-        }else if(sendContent.contains(("修改用户姓名->"))){
-            sendContent = modifyUser(sendContent,subscribeInfo.getEvent().getSender().getSender_id().getOpen_id());
-        }else if(sendContent.contains(("删除用户"))){
-            sendContent = deleteUser(subscribeInfo.getEvent().getSender().getSender_id().getOpen_id());
-        }else if(sendContent.contains(("创建部门"))){
+        }else if(sendContent.contains("修改用户姓名->")){
+            sendContent = modifyUser(sendContent,open_id);
+        }else if(sendContent.contains("删除用户")){
+            sendContent = deleteUser(open_id);
+        }else if(sendContent.contains("创建部门")){
             sendContent = createDept(sendContent);
-        }else if(sendContent.contains(("根据部门ID获取单个部门信息->"))){
+        }else if(sendContent.contains("根据部门ID获取单个部门信息->")){
             sendContent = getDeptInfoByOpenId(sendContent);
-        }else if(sendContent.contains(("获取父部门信息"))){
+        }else if(sendContent.contains("获取父部门信息")){
             sendContent = getDeptParentInfo(sendContent);
-        }else if(sendContent.contains(("搜索部门->"))){
-            sendContent = searchDeptByName(sendContent,subscribeInfo.getEvent().getSender().getSender_id().getOpen_id());
-        }else if(sendContent.contains(("修改部门信息->"))){
+        }else if(sendContent.contains("搜索部门->")){
+            sendContent = searchDeptByName(sendContent,open_id);
+        }else if(sendContent.contains("修改部门信息->")){
             sendContent = modifyDeptInfo(sendContent);
-        }else if(sendContent.contains(("删除部门->"))){
+        }else if(sendContent.contains("删除部门->")){
             sendContent = deleteDept(sendContent);
-        }else if(sendContent.contains(("发送图片"))){
+        }else if(sendContent.contains("发送图片")){
             sendImageV1(chat_id);
             return;
-        }else if(sendContent.contains(("发送富文本"))){
+        }else if(sendContent.contains("发送富文本")){
             sendPostText(chat_id);
+            return;
+        }else if(sendContent.contains("文本翻译->")){
+            sendContent = translateText(sendContent,chat_id);
+        }else if(sendContent.contains("图片识别")){
+            sendContent = imageTranslate();
+        }else if(sendContent.contains("下载图片")){
+            sendContent = downloadImage();
+        }else if(sendContent.contains("苍井空")||sendContent.contains("政治")){
+            deleteMessage(messageId,open_id);
             return;
         }else if(sendContent.contains(("ls"))){
             String items = "\n" +
@@ -206,7 +224,13 @@ public class ZielSub extends EventServlet {
                     "13.修改部门信息->xxx(部门名称)\n"+
                     "14.删除部门->xxx(openId)\n"+
                     "15.发送图片\n"+
-                    "16.发送富文本";
+                    "16.发送富文本\n"+
+                    "####################################\n"+
+                    "1.文本翻译->xxx(中文)\n"+
+                    "3.撤回测试(发送的文字包含[苍井空|政治])\n"+
+                    "4.下载图片\n"+
+                    "5.图片识别\n"
+                    ;
             sendContent = items;
         }
         //获取发送人的user_id  用于@
@@ -218,9 +242,112 @@ public class ZielSub extends EventServlet {
             contentBody = contentBody.replace("@_user_1","").trim();
         }
 //        this.sendTextMessage(tenant_key, contentBody, chat_id);
-        this.sendTextMessageV1(contentBody, chat_id);
+//        this.sendTextMessageV1(contentBody, chat_id);
+        this.replyMessage(contentBody, messageId);
     }
 
+    private String downloadImage() throws Exception {
+        Map<String, Object> queries = new HashMap<>();
+        String resource = Thread.currentThread().getContextClassLoader().getResource("/static/dtest.png").getFile();
+        Request<Object, FileOutputStream> request = Request.newRequest("im/v1/images/img_v2_fc2dacea-0f92-443f-8c03-b6660b260dcg",
+                "GET", AccessTokenType.Tenant, null, new FileOutputStream(resource), Request.setResponseStream(), Request.setQueryParams(
+                        queries));
+        request.setContentType("image/webp");
+        Response<FileOutputStream> response = Api.send(config, request);
+        FileOutputStream data = response.getData();
+        System.out.println(response.getRequestID());
+        System.out.println(response.getHTTPStatusCode());
+        return "下载图片成功";
+    }
+
+    /**
+     * deleteMessage
+     * 撤回信息
+     * @param messageId
+     * @param openId
+     * @throws {@link Exception}
+     * @author 王帅杰
+     * @history
+     */
+    private void deleteMessage(String messageId,String openId) throws Exception {
+        Request<Map<String, Object>, HashMap<Object, Object>> request = Request.newRequest("im/v1/messages/" + messageId,
+                "DELETE", AccessTokenType.User, null, new HashMap<>(),Request.setUserAccessToken(Constant.userMap.get("ou_f4c091cd5dfb69c279d5d9280dc7a175").getAccessToken()));
+        Response<HashMap<Object, Object>> response = Api.send(config, request);
+        System.out.println(response.getRequestID());
+        System.out.println(response.getHTTPStatusCode());
+        System.out.println(Jsons.DEFAULT_GSON.toJson(response));
+    }
+
+    /**
+     * replyMessage
+     * 回复信息
+     * @param sendContent
+     * @param messageId
+     * @throws {@link Exception}
+     * @author 王帅杰
+     * @history
+     */
+    private void replyMessage(String sendContent, String messageId) throws Exception {
+        Map<String, Object> message = new HashMap<>();
+        //如果是user_id,机器人回单聊发送信息
+        //chat_id，在发送信息的窗口发送信息
+        message.put("msg_type", "text");
+        Map<String, Object> content = new HashMap<>();
+        content.put("text", sendContent);
+        message.put("content",mapper.writeValueAsString(content));
+        Request<Map<String, Object>, HashMap<Object, Object>> request = Request.newRequest("im/v1/messages/" + messageId + "/reply",
+                "POST", AccessTokenType.Tenant, message, new HashMap<>());
+        Response<HashMap<Object, Object>> response = Api.send(config, request);
+        System.out.println(response.getRequestID());
+        System.out.println(response.getHTTPStatusCode());
+        System.out.println(Jsons.DEFAULT_GSON.toJson(response));
+    }
+
+    private String imageTranslate() throws Exception {
+        String resource = Thread.currentThread().getContextClassLoader().getResource("/static/translate.png").getFile();
+        byte[] bytes = FileUtil.readBytes(new File(resource));
+        String str = Base64Encoder.encode(bytes);
+        Map<String, Object> message = new HashMap<>();
+        message.put("image", str);
+        Request<Map<String, Object>, HashMap<Object, Object>> request = Request.newRequest("optical_char_recognition/v1/image/basic_recognize",
+                "POST", AccessTokenType.Tenant, message, new HashMap<>());
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        if (send.getCode() != 0) {
+            return send.getMsg();
+        }
+        return send.getData().get("text_list").toString();
+    }
+
+    private String translateText(String sendContent, String chat_id) throws Exception {
+        String[] split = sendContent.split("->");
+        TranslateEntity translateEntity = new TranslateEntity();
+        translateEntity.setSource_language("zh");
+        translateEntity.setTarget_language("en");
+        translateEntity.setText(split[1]);
+        List<TranslateEntity.GlossaryEntity> glossaryList = new ArrayList<>();
+        TranslateEntity.GlossaryEntity entity = new TranslateEntity.GlossaryEntity();
+        entity.setFrom("王帅杰");
+        entity.setTo("Wsj");
+        glossaryList.add(entity);
+        translateEntity.setGlossary(glossaryList);
+
+        Request<TranslateEntity, HashMap<Object, Object>> request = Request.newRequest("translation/v1/text/translate",
+                "POST", AccessTokenType.Tenant, translateEntity, new HashMap<>());
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        if (send.getCode() != 0) {
+            return send.getMsg();
+        }
+        return send.getData().get("text").toString();
+    }
+
+    /**
+     * sendPostText
+     * 发送富文本时，值为Null的字段不进行序列化
+     * @param chatId
+     * @throws {@link Exception}
+     * @author 王帅杰
+     * @history
+     */
     private void sendPostText(String chatId) throws Exception {
         Map<String, Object> message = new HashMap<>();
         //如果是user_id,机器人回单聊发送信息
@@ -251,30 +378,25 @@ public class ZielSub extends EventServlet {
         contentEntity4.setWidth(100);
         contentEntity4.setHeight(100);
         listItems.add(contentEntity);
-        //listItems.add(contentEntity2);
-        //listItems.add(contentEntity3);
-        //listItems.add(contentEntity4);
+        listItems.add(contentEntity2);
+        listItems.add(contentEntity3);
+        listItems.add(contentEntity4);
         listTotal.add(listItems);
-//        List<PostText.Zh_cnEntity.ContentEntity> listItems2 = new ArrayList<>();
-//        PostText.Zh_cnEntity.ContentEntity contentEntity5 = new PostText.Zh_cnEntity.ContentEntity();
-//        contentEntity5.setTag("text");
-//        contentEntity5.setText("第二行");
-//        listItems2.add(contentEntity5);
-//        listTotal.add(listItems2);
+        List<PostText.Zh_cnEntity.ContentEntity> listItems2 = new ArrayList<>();
+        PostText.Zh_cnEntity.ContentEntity contentEntity5 = new PostText.Zh_cnEntity.ContentEntity();
+        contentEntity5.setTag("text");
+        contentEntity5.setText("第二行");
+        listItems2.add(contentEntity5);
+        listTotal.add(listItems2);
         zhCh.setContent(listTotal);
         postText.setZh_cn(zhCh);
         //postText.setEn_us(new PostText.Zh_cnEntity());
-
-        Map<String, Object> map = new HashMap<>();
-        map.put("post", postText);
-        log.info("发送的富文本JSON->"+mapper.writeValueAsString(map));
-
-        message.put("content", mapper.writeValueAsString(map));
+        message.put("content", mapper.writeValueAsString(postText));
         log.info("发送的Message JSON->"+mapper.writeValueAsString(message));
         //v4旧版本  v1新版本
-        Request<Map<String, Object>, Map<String, Object>> request = Request.newRequest("im/v1/messages?receive_id_type=chat_id",
+        Request<Map<String, Object>, HashMap<Object, Object>> request = Request.newRequest("im/v1/messages?receive_id_type=chat_id",
                 "POST", AccessTokenType.Tenant, message, new HashMap<>());
-        Response<Map<String, Object>> response = Api.send(config, request);
+        Response<HashMap<Object, Object>> response = Api.send(config, request);
         System.out.println(response.getRequestID());
         System.out.println(response.getHTTPStatusCode());
         System.out.println(Jsons.DEFAULT_GSON.toJson(response));
