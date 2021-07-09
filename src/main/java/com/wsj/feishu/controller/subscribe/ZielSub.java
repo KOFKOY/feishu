@@ -27,6 +27,8 @@ import com.larksuite.oapi.service.contact.v3.model.UserCreatedEvent;
 import com.larksuite.oapi.service.contact.v3.model.UserUpdatedEvent;
 import com.wsj.feishu.constant.Constant;
 import com.wsj.feishu.entity.*;
+import com.wsj.feishu.entity.card.ElementsEntity;
+import com.wsj.feishu.entity.card.HeaderEntity;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.NoUniqueBeanDefinitionException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -203,6 +205,9 @@ public class ZielSub extends EventServlet {
             sendContent = imageTranslate();
         }else if(sendContent.contains("下载图片")){
             sendContent = downloadImage();
+        }else if(sendContent.contains("发送卡片")){
+            sendCardInfo(chat_id);
+            return;
         }else if(sendContent.contains("苍井空")||sendContent.contains("政治")){
             deleteMessage(messageId,open_id);
             return;
@@ -229,7 +234,8 @@ public class ZielSub extends EventServlet {
                     "1.文本翻译->xxx(中文)\n"+
                     "3.撤回测试(发送的文字包含[苍井空|政治])\n"+
                     "4.下载图片\n"+
-                    "5.图片识别\n"
+                    "5.图片识别\n"+
+                    "6.发送卡片\n"
                     ;
             sendContent = items;
         }
@@ -244,6 +250,62 @@ public class ZielSub extends EventServlet {
 //        this.sendTextMessage(tenant_key, contentBody, chat_id);
 //        this.sendTextMessageV1(contentBody, chat_id);
         this.replyMessage(contentBody, messageId);
+    }
+
+    private void sendCardInfo(String chat_id) throws Exception {
+        CardInfo cardInfo = new CardInfo();
+        cardInfo.setOpen_id("ou_f4c091cd5dfb69c279d5d9280dc7a175");
+        cardInfo.setMsg_type("interactive");
+        cardInfo.setUpdate_multi(false);
+        CardInfo.CardEntity cardEntity = new CardInfo.CardEntity();
+        CardInfo.CardEntity.ConfigEntity configEntity = new CardInfo.CardEntity.ConfigEntity();
+        configEntity.setWide_screen_mode(true);
+        cardEntity.setConfig(configEntity);
+        HeaderEntity headerEntity = new HeaderEntity();
+        headerEntity.setTemplate("blue");
+        headerEntity.setTitle(new HeaderEntity.TitleEntity("plain_text","待办事项"));
+        cardEntity.setHeader(headerEntity);
+        List<ElementsEntity> elementsList = new ArrayList<>();
+        ElementsEntity element1 = new ElementsEntity();
+        element1.setTag("div");
+        List<ElementsEntity.FieldsEntity> fieldList = new ArrayList<>();
+        ElementsEntity.FieldsEntity field1 = new ElementsEntity.FieldsEntity();
+        field1.set_short(false);
+        field1.setText(new ElementsEntity.TextEntity("lark_md","XXX同学的禁忌之路"));
+        ElementsEntity.FieldsEntity field2 = new ElementsEntity.FieldsEntity();
+        field2.set_short(true);
+        field2.setText(new ElementsEntity.TextEntity("lark_md", "申请人:王晓磊"));
+        ElementsEntity.FieldsEntity field3 = new ElementsEntity.FieldsEntity();
+        field3.set_short(false);
+        field3.setText(new ElementsEntity.TextEntity("lark_md", ""));
+        ElementsEntity.FieldsEntity field4 = new ElementsEntity.FieldsEntity();
+        field4.set_short(false);
+        field4.setText(new ElementsEntity.TextEntity("lark_md","**时间：**\n2020-4-8 至 2020-4-10（共3天）"));
+        ElementsEntity.FieldsEntity field5 = new ElementsEntity.FieldsEntity();
+        field5.set_short(false);
+        field5.setText(new ElementsEntity.TextEntity("lark_md", ""));
+        fieldList.add(field1);
+        fieldList.add(field2);
+        fieldList.add(field3);
+        fieldList.add(field4);
+        fieldList.add(field5);
+        element1.setFields(fieldList);
+        ElementsEntity element2 = new ElementsEntity();
+        element2.setTag("hr");
+        ElementsEntity element3 = new ElementsEntity();
+        element3.setTag("div");
+        element3.setText(new ElementsEntity.TextEntity("lark_md","[点击查看详情](https://www.baidu.com)"));
+        elementsList.add(element1);
+        elementsList.add(element2);
+        elementsList.add(element3);
+        cardEntity.setElements(elementsList);
+        cardInfo.setCard(cardEntity);
+
+        log.info("发送的json->" + mapper.writeValueAsString(cardInfo));
+        Request<CardInfo, HashMap<Object, Object>> request = Request.newRequest("message/v4/send",
+                "POST", AccessTokenType.Tenant, cardInfo, new HashMap<>());
+        Response<HashMap<Object, Object>> send = Api.send(config, request);
+        log.info("发送卡片->" + send);
     }
 
     private String downloadImage() throws Exception {

@@ -1,4 +1,5 @@
 二维码登录地址：
+https://open.feishu.cn/open-apis/authen/v1/index?redirect_uri={REDIRECT_URI}&app_id={APPID}&state={STATE}
 https://open.feishu.cn/open-apis/authen/v1/index?redirect_uri=http%3A%2F%2Fwsj.free.aeert.com%2Flogin&app_id=cli_a05687963b38500b&state=wsjtest
 
 #### 1.获取 tenant_access_token/app_access_token

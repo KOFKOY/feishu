@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- 在html文档中 -->
+    <!--<script type="text/javascript" src="https://sf1-scmcdn-tos.pstatp.com/goofy/ee/lark/h5jssdk/lark/js_sdk/h5-js-sdk-1.5.4.js"></script>-->
+    <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.8.0.js"></script>
+    <title>飞书扫码登录</title>
+</head>
+
+<body style="text-align: center">
+<div style="float: right;margin-right: 400px;margin-top: 250px">
+    <h2> 登录状态：<span id="state">等待扫码</span></h2>
+    <h2>登录用户：<span id="name"></span></h2>
+    <h2>网址：<span id="address"></span></h2>
+</div>
+<div style="float: left;margin-left: 300px">
+    <h2>百度二维码</h2>
+    <img src="baidu.png" >
+    <h2>Github二维码</h2>
+    <img src="github.png" >
+</div>
+
+</body>
+<script type="application/javascript">
+/*    window.h5sdk.ready(()=>{
+        alert('测试');
+    });*/
+var count = 1;
+getLoginResult();
+function getLoginResult(){
+    let timer;
+    count ++;
+    if(count >=60 ){
+        clearTimeout(timer);
+        console.log('二维码超时')
+        $("#state").text('二维码超时');
+        return;
+    }
+    $.get("http://cn-hn-dx-1.natfrp.cloud:63776/login/test?code=随机码,需要定时刷新二维码的state",function(result){
+        if(result==''){
+            console.log('xxxx');
+            timer = setTimeout(()=>{
+                getLoginResult();
+            },1500);
+        }else {
+            clearTimeout(timer);
+            var obj = JSON.parse(result);
+            $("#state").text('扫码成功');
+            $("#name").text(obj.name);
+            $("#address").text(obj.url);
+            console.log(obj);
+            setTimeout(()=>{
+                window.location.href=obj.url;
+            },3000);
+        }
+    });
+}
+</script>
+</html>

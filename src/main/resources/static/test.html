@@ -1,10 +1,98 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0;" name="viewport" />
+    <meta charset="utf-8" />
+    <title>将军令</title>
+    <link href="asset/css/bootstrap.min.css" rel="stylesheet" />
+    <script src="asset/js/jquery-2.1.4.min.js"></script>
+    <script src="https://g.alicdn.com/dingding/dingtalk-pc-api/2.7.0/index.js"></script>
 </head>
 <body>
-<h1>############################测试网页########################</h1>
+<div id="div_CodeContiner" class="container-fluid" style="text-align: center; padding-top: 5em;">
+    <div style="font-size: 4em">动态口令</div>
+    <div style="font-size: 5em; color: darkorange" id="div_Code">-WAIT-</div>
+    <div style="font-size: 1em; height: 2em;" id="div_Time">非将军不登录^_^</div>
+    <button id="btn_Refresh" class="btn btn-primary btn-lg" style="font-size: 1.5em; width: 8em" onclick="getRandomPassword()">Loading...</button>
+</div>
+<script type="text/javascript">
+    var _url = window.location.href;
+    alert(_url);
+    var _timerInv;
+    var _leftSeconds = 30;
+    var _config;
+    function dd_alert(msg) {
+        DingTalkPC.device.notification.alert({ message: msg, buttonName: "OK" });
+    }
+    $("#btn_Refresh").text("Loading...");
+    $("#btn_Refresh").attr("disabled", true);
+    $.ajax({
+        url: "Api/GetConfig.api",
+        method: "POST",
+        data: { "checkUrl": _url },
+        success: function (resObj) {
+            _config = resObj.data;
+            try {
+                DingTalkPC.config({
+                    agentId: _config.agentid,
+                    corpId: _config.corpid,
+                    timeStamp: _config.timestamp,
+                    nonceStr: _config.noncestr,
+                    signature: _config.signature,
+                    jsApiList: ['runtime.info',
+                        'device.notification.confirm',
+                        'device.notification.alert',
+                        'device.notification.prompt',
+                        'runtime.permission.requestAuthCode']
+                });
+                DingTalkPC.ready(function () {
+                    getRandomPassword();
+                });
+
+                DingTalkPC.error(function (error) {
+                    dd_alert(JSON.stringify(error));
+                });
+            }
+            catch (ex) {
+                dd_alert(JSON.stringify(ex));
+            }
+        },
+        error: function (err) {
+            $("#test").text(JSON.stringify(err));
+        }
+    });
+    function getRandomPassword() {
+        DingTalkPC.runtime.permission.requestAuthCode({
+            corpId: _config.corpid,
+            onSuccess: function (result) {
+                $.get("/Api/GetRandomPassword.api?ddCode=" + result.code, function (res) {
+                    $("#div_Code").text(res.data);
+                    $("#btn_Refresh").css("color", "").attr("disabled", true).text("重新生成(30)");
+                    _leftSeconds = 30;
+                    clearInterval(_timerInv);
+                    _timerInv = setInterval(function () {
+                        _leftSeconds = _leftSeconds - 1;
+                        if (_leftSeconds > 0) {
+                            $("#btn_Refresh").text("重新生成(" + _leftSeconds + ")");
+                            if (_leftSeconds <= 15) {
+                                $("#btn_Refresh").css("color", "red");
+                            }
+                        }
+                        else {
+                            clearInterval(_timerInv);
+                            $("#btn_Refresh").text("重新生成").attr("disabled", false).css("color", "");
+                            $("#div_Code").text("-已失效-");
+                        }
+                    }, 1000);
+                });
+            },
+            onFail: function (err) {
+                dd_alert(JSON.stringify(err));
+            }
+        });
+    }
+    getRandomPassword();
+</script>
 </body>
 </html>
