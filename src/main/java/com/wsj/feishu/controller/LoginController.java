@@ -47,6 +47,11 @@ public class LoginController{
     private ObjectMapper mapper;
     //key ->state
     private Map<String, Map<String,String>> redis模拟 = new HashMap<>();
+
+    @GetMapping("/test2")
+    public void test(){
+        System.out.println("xxxxxxxxxxxxxxxxxxxxxxxxx");
+    }
     /**
      * scanCodeLogin
      * 扫码登录
