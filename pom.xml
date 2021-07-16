@@ -20,10 +20,16 @@
         <profile>
             <id>dev</id>
             <properties>
-                <feishu.appid>cli_a05687963b38500b</feishu.appid>
+                <!--派大星 修改用户userid-->
+                <feishu.appid>cli_a07b94ba2c38500e</feishu.appid>
+                <feishu.appsecret>wQ92PYjpcOW052mOB3XsVhKWLCeFbKrn</feishu.appsecret>
+                <feishu.verificationtoken>2OeEnc1czYmcwaRVXPSCCddIXCXFym46</feishu.verificationtoken>
+                <feishu.encryptkey></feishu.encryptkey>
+
+                <!--致欧测试<feishu.appid>cli_a05687963b38500b</feishu.appid>
                 <feishu.appsecret>2xYKhGZuOFliwco4fbO7ndIkGwFGlroo</feishu.appsecret>
                 <feishu.verificationtoken>x4IMRuzr0qDzThWyy18V4bbrtZqAR1Zr</feishu.verificationtoken>
-                <feishu.encryptkey>wsjTest</feishu.encryptkey>
+                <feishu.encryptkey>wsjTest</feishu.encryptkey>-->
             </properties>
             <activation>
                 <activeByDefault>true</activeByDefault>
