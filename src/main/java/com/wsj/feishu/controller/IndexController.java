@@ -12,4 +12,9 @@ public class IndexController {
     public String index(){
         return "poi";
     }
+
+    @GetMapping("/cm")
+    public String indexCm(){
+        return "cm";
+    }
 }
