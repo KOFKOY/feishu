@@ -42,17 +42,17 @@ public class ExcelController {
         ImportParams importParams = new ImportParams();
         importParams.setHeadRows(1);//头占用的行数
         importParams.setTitleRows(0);//标题占用的行数，没有写0
-        ExcelImportResult<UserByExcel> result = null;
+        ExcelImportResult<Map<Object,Object>> result = null;
         try {
-            result = ExcelImportUtil.importExcelMore(file.getInputStream(), UserByExcel.class,
+            result = ExcelImportUtil.importExcelMore(file.getInputStream(), Map.class,
                     importParams);
-            List<UserByExcel> list = result.getList();
+            List<Map<Object,Object>> list = result.getList();
             long time = System.currentTimeMillis();
             FileWriter fileWriter = new FileWriter("D:\\log\\手机号为空"+time+".txt");
             FileWriter phoneNotExist = new FileWriter("D:\\log\\手机号在飞书中不存在"+time+".txt");
             FileWriter findException = new FileWriter("D:\\log\\查询异常"+time+".txt");
             FileWriter modifyCompleted = new FileWriter("D:\\log\\已经修改过的手机号"+time+".txt");
-            list.stream().forEach(obj -> {
+            /*list.stream().forEach(obj -> {
                 if (StrUtil.isBlank(obj.getPhone())) {
                     fileWriter.append(obj.getName()+"\n");
                     return;
@@ -63,7 +63,7 @@ public class ExcelController {
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            });
+            });*/
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -123,14 +123,15 @@ public class ExcelController {
     @PostMapping("/addPizhu")
     public String addPizhu(@RequestParam("file") MultipartFile file) throws IOException {
         ImportParams importParams = new ImportParams();
-        importParams.setHeadRows(4);//头占用的行数
+        importParams.setHeadRows(2);//头占用的行数
         importParams.setTitleRows(0);//标题占用的行数，没有写0
         importParams.setStartSheetIndex(1);
-        ExcelImportResult<Map<Object,Object>> result = null;
+//        importParams.setReadRows(32);//手动控制读取的行数
+        ExcelImportResult<Map<String,String>> result = null;
         try {
             result = ExcelImportUtil.importExcelMore(file.getInputStream(), Map.class,
                     importParams);
-            List<Map<Object,Object>> list = result.getList();
+            List<Map<String,String>> list = result.getList();
             log.info("list大小" + list.size());
         } catch (Exception e) {
             e.printStackTrace();
