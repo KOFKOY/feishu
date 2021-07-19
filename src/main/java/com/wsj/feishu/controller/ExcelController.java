@@ -37,21 +37,6 @@ public class ExcelController {
     @Autowired
     private ObjectMapper mapper;
 
-    @GetMapping
-    public void upload() throws Exception {
-        log.info("开始导入");
-        ImportParams params = new ImportParams();
-        //设置标题的行数，有标题时一定要有
-        params.setTitleRows(1);
-        //设置表头的行数
-        params.setHeadRows(1);
-        ExcelImportResult<User> result = ExcelImportUtil.importExcelMore(new File("F:\\用户信息.xlsx"), User.class,
-                params);
-        System.out.println(result.getList().size());
-        log.info("结束");
-
-    }
-
     @PostMapping("/modifyFeishuUserId")
     public String importExcel2(@RequestParam("file") MultipartFile file) throws IOException {
         ImportParams importParams = new ImportParams();
@@ -135,4 +120,21 @@ public class ExcelController {
     }
 
 
+    @PostMapping("/addPizhu")
+    public String addPizhu(@RequestParam("file") MultipartFile file) throws IOException {
+        ImportParams importParams = new ImportParams();
+        importParams.setHeadRows(4);//头占用的行数
+        importParams.setTitleRows(0);//标题占用的行数，没有写0
+        importParams.setStartSheetIndex(1);
+        ExcelImportResult<Map<Object,Object>> result = null;
+        try {
+            result = ExcelImportUtil.importExcelMore(file.getInputStream(), Map.class,
+                    importParams);
+            List<Map<Object,Object>> list = result.getList();
+            log.info("list大小" + list.size());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "处理成功,总数据条数：" + result.getList().size();
+    }
 }
