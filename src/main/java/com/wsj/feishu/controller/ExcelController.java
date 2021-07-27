@@ -73,8 +73,7 @@ public class ExcelController {
                     return;
                 }
                 try {
-                    System.out.println(obj.toString());
-                    //this.getUserInfo(obj.getPhone(),obj.getNewCode(),phoneNotExist,findException,modifyCompleted);
+                    this.getUserInfo(obj.getPhone(),obj.getNewUserId(),phoneNotExist,findException,modifyCompleted);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -91,7 +90,8 @@ public class ExcelController {
         FileWriter phoneNotExist = new FileWriter("D:\\log\\手机号在飞书中不存在"+time+".txt");
         FileWriter findException = new FileWriter("D:\\log\\查询异常"+time+".txt");
         FileWriter modifyCompleted = new FileWriter("D:\\log\\已经修改过的手机号"+time+".txt");
-        getUserInfo("13927490900", "66660110", phoneNotExist, findException,modifyCompleted);//18825180213
+        //张丽君  13927490900   600526643
+        getUserInfo("17093757119", "600241522", phoneNotExist, findException,modifyCompleted);
     }
 
     public String getUserInfo(String phone,String newUserId,FileWriter phoneNotExist,FileWriter findException,FileWriter modifyCompleted) throws Exception {
@@ -107,8 +107,8 @@ public class ExcelController {
                 phoneMap = mapper.readValue(mobile_users, Map.class);
                 Map<Object,Object> resultMap = phoneMap.get(phone).get(0);
                 String user_id = resultMap.get("user_id").toString();
-                log.info("userId->"+user_id);
-                //modifyUserId(user_id,newUserId,phone,modifyCompleted);
+                log.info("userId->"+user_id +" :::::: OId->"+newUserId);
+                modifyUserId(user_id,newUserId,phone,modifyCompleted);
             }else{
                 //Object mobiles_not_exist = data.get("mobiles_not_exist");
                 phoneNotExist.append(phone+"\n");
