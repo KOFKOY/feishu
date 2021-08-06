@@ -24,6 +24,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,32 +87,49 @@ public class ExcelController {
     }
 
     @GetMapping("/getUserInfo")
-    public void modify() throws Exception {
+    public void modify(String phone,String id) throws Exception {
         long time = System.currentTimeMillis();
         FileWriter phoneNotExist = new FileWriter("D:\\log\\手机号在飞书中不存在"+time+".txt");
         FileWriter findException = new FileWriter("D:\\log\\查询异常"+time+".txt");
         FileWriter modifyCompleted = new FileWriter("D:\\log\\已经修改过的手机号"+time+".txt");
         //张丽君  13927490900   600526643
-        getUserInfo("17093757119", "600241522", phoneNotExist, findException,modifyCompleted);
+        log.info("手机->" + phone);
+        log.info("id->" + id);
+        getUserInfo(phone, id, phoneNotExist, findException,modifyCompleted);
     }
 
     public String getUserInfo(String phone,String newUserId,FileWriter phoneNotExist,FileWriter findException,FileWriter modifyCompleted) throws Exception {
+        //处理手机号
+        if (phone.length() != 11) {
+            int i = phone.indexOf(")");
+            int j = phone.indexOf("(");
+            String qz = phone.substring(j + 1, i).replace("00", "");
+            phone = phone.substring(i + 1, phone.length());
+            phone = URLEncoder.encode(qz+phone, "utf-8");
+            log.info("非国内手机号:::"+phone);
+        }
+
         Request<HashMap<Object,Object>, HashMap<Object, Object>> request = Request.newRequest("user/v1/batch_get_id?mobiles="+phone,
                 "GET", AccessTokenType.Tenant, null, new HashMap<>());
         Response<HashMap<Object, Object>> send = Api.send(config, request);
         if (send.getCode()==0) {
             HashMap<Object, Object> data = send.getData();
+            log.info(data.toString());
             Object  mobile_users1 = data.get("mobile_users");
             if (mobile_users1 != null) {
                 String mobile_users = mapper.writeValueAsString(mobile_users1);
                 Map<Object,List<Map<Object,Object>>> phoneMap = new HashMap<Object, List<Map<Object,Object>>>();
                 phoneMap = mapper.readValue(mobile_users, Map.class);
+                if(phone.startsWith("%")){
+                    phone = URLDecoder.decode(phone,"utf-8");
+                }
                 Map<Object,Object> resultMap = phoneMap.get(phone).get(0);
                 String user_id = resultMap.get("user_id").toString();
                 log.info("userId->"+user_id +" :::::: OId->"+newUserId);
                 modifyUserId(user_id,newUserId,phone,modifyCompleted);
             }else{
                 //Object mobiles_not_exist = data.get("mobiles_not_exist");
+                log.info("没有找到");
                 phoneNotExist.append(phone+"\n");
             }
         }else{
@@ -121,6 +140,7 @@ public class ExcelController {
     }
 
     public void modifyUserId(String userId,String newUserId,String phone,FileWriter modifyCompleted) throws Exception {
+        if(newUserId == null) return;
         if (userId.equalsIgnoreCase(newUserId)) {
             long l = System.currentTimeMillis();
             log.info(phone+"的userId已经修改过了！");

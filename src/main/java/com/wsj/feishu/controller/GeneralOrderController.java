@@ -26,7 +26,11 @@ import java.io.IOException;
 @RequestMapping("/generalOrder")
 public class GeneralOrderController {
 
+    /*//致欧上测试的将军令
     AppSettings appSettings = Config.createInternalAppSettings("cli_a062aadfedb9d00e","cyGUzj2UmxF3zVt5Coy33bSicdhduVV3","lcExBvKCWJ1AXFreB6XkdCgesoCpDMyr","");
+    */
+    //自己测试使用
+    AppSettings appSettings = Config.createInternalAppSettings("cli_a06c2bce3538900b","x9wjhwAR9HQ8PPhWqj4xUfRD2p1WtZ7J","lcExBvKCWJ1AXFreB6XkdCgesoCpDMyr","");
     Config config = new Config(Domain.FeiShu, appSettings, new DefaultStore());//RedisStore
 
     @PostMapping
