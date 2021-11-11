@@ -86,6 +86,12 @@ public class ExcelController {
         return "处理成功,总数据条数：" + result.getList().size();
     }
 
+    /**
+     * http://localhost/excel/getUserInfo?phone=18938555501&id=601064758
+     * @param phone
+     * @param id   自定义的ID，不是飞书生成的id
+     * @throws Exception
+     */
     @GetMapping("/getUserInfo")
     public void modify(String phone,String id) throws Exception {
         long time = System.currentTimeMillis();
@@ -108,7 +114,8 @@ public class ExcelController {
             phone = URLEncoder.encode(qz+phone, "utf-8");
             log.info("非国内手机号:::"+phone);
         }
-
+        /*Request<HashMap<Object,Object>, HashMap<Object, Object>> request = Request.newRequest("user/v1/batch_get_id?emails="+phone,
+                "GET", AccessTokenType.Tenant, null, new HashMap<>());*/
         Request<HashMap<Object,Object>, HashMap<Object, Object>> request = Request.newRequest("user/v1/batch_get_id?mobiles="+phone,
                 "GET", AccessTokenType.Tenant, null, new HashMap<>());
         Response<HashMap<Object, Object>> send = Api.send(config, request);
@@ -116,6 +123,7 @@ public class ExcelController {
             HashMap<Object, Object> data = send.getData();
             log.info(data.toString());
             Object  mobile_users1 = data.get("mobile_users");
+//            Object  mobile_users1 = data.get("email_users");
             if (mobile_users1 != null) {
                 String mobile_users = mapper.writeValueAsString(mobile_users1);
                 Map<Object,List<Map<Object,Object>>> phoneMap = new HashMap<Object, List<Map<Object,Object>>>();
