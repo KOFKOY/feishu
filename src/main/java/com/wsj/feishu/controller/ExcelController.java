@@ -105,17 +105,18 @@ public class ExcelController {
     }
 
     public String getUserInfo(String phone,String newUserId,FileWriter phoneNotExist,FileWriter findException,FileWriter modifyCompleted) throws Exception {
-        //处理手机号
+        //处理手机号  果然是国外手机号要前面要有加号和区码 +49 应该要去掉0  再encode
         if (phone.length() != 11) {
             int i = phone.indexOf(")");
             int j = phone.indexOf("(");
             String qz = phone.substring(j + 1, i).replace("00", "");
             phone = phone.substring(i + 1, phone.length());
-            phone = URLEncoder.encode(qz+phone, "utf-8");
+            phone = URLEncoder.encode("+"+qz+phone, "utf-8");
             log.info("非国内手机号:::"+phone);
         }
-        /*Request<HashMap<Object,Object>, HashMap<Object, Object>> request = Request.newRequest("user/v1/batch_get_id?emails="+phone,
-                "GET", AccessTokenType.Tenant, null, new HashMap<>());*/
+//        phone = "sunwenxin.de@ziel.cn";
+//        Request<HashMap<Object,Object>, HashMap<Object, Object>> request = Request.newRequest("user/v1/batch_get_id?emails="+phone,
+//                "GET", AccessTokenType.Tenant, null, new HashMap<>());
         Request<HashMap<Object,Object>, HashMap<Object, Object>> request = Request.newRequest("user/v1/batch_get_id?mobiles="+phone,
                 "GET", AccessTokenType.Tenant, null, new HashMap<>());
         Response<HashMap<Object, Object>> send = Api.send(config, request);
